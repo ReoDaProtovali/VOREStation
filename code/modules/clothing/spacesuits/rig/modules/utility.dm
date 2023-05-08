@@ -15,6 +15,7 @@
  * /obj/item/rig_module/device/paperdispenser
  * /obj/item/rig_module/device/pen
  * /obj/item/rig_module/device/stamp
+ * /obj/item/rig_module/device/stamp/manager
  * /obj/item/rig_module/mounted/mop
  * /obj/item/rig_module/cleaner_launcher
  */
@@ -600,8 +601,18 @@
 			to_chat(holder.wearer, "<span class='notice'>Switched to denied stamp.</span>")
 		else if(device == deniedstamp)
 			device = iastamp
-			to_chat(holder.wearer, "<span class='notice'>Switched to internal affairs stamp.</span>")
+			to_chat(holder.wearer, "<span class='notice'>Switched to [iastamp].</span>")	//VoreEdit: for modular stamp usage
 		return 1
+
+/obj/item/rig_module/device/stamp/captain	 //VoreAdd start: Captain hardsuit stamp module
+	name = "mounted site manager stamp"
+	interface_desc = "Leave your mark. Site Manager flavored."
+
+/obj/item/rig_module/device/stamp/captain/New()
+	..()
+	iastamp = new /obj/item/weapon/stamp/captain(src)
+	deniedstamp = new /obj/item/weapon/stamp/denied(src)
+	device = iastamp						//VoreEnd
 
 /obj/item/rig_module/sprinter
 	name = "sprint module"

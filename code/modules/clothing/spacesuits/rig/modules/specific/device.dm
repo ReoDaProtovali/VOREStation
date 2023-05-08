@@ -172,5 +172,17 @@
 			to_chat(holder.wearer, "<span class='notice'>Switched to denied stamp.</span>")
 		else if(device == deniedstamp)
 			device = iastamp
-			to_chat(holder.wearer, "<span class='notice'>Switched to internal affairs stamp.</span>")
+			to_chat(holder.wearer, "<span class='notice'>Switched to [iastamp].</span>")	//VoreEdit: for modular stamp usage
 		return 1
+
+/obj/item/rig_module/device/stamp/captain	 //VoreAdd start: Captain hardsuit stamp module
+	name = "mounted site manager stamp"
+	desc = "No. The drone cannot order 20 skub crates."
+	interface_desc = "Leave your mark. Site Manager flavored."
+
+/obj/item/rig_module/device/stamp/captain/New()
+	..()
+	iastamp = new /obj/item/weapon/stamp/captain(src)
+	deniedstamp = new /obj/item/weapon/stamp/denied(src)
+	device = iastamp
+	//VoreEnd
