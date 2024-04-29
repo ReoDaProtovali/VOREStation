@@ -8,16 +8,13 @@
 	/// type paths of items consumed associated with how many are needed
 	/// Note that stacks have special handling: the logic accounts for having '23' available
 	/// in the case of just having one stack of 23 amount, so stack/steel = 23 is fine
-	var/list/reqs = list()
-	var/list/blacklist = list() //type paths of items explicitly not allowed as an ingredient
+	var/reqs[] = list()
+	var/blacklist[] = list() //type paths of items explicitly not allowed as an ingredient
 	var/result //type path of item resulting from this craft
-	/// String defines of items needed but not consumed. Lazy list.
-	var/list/tool_behaviors
-	/// Type paths of items needed but not consumed. Lazy list.
-	var/list/tool_paths
-	var/time = 30 //time in deciseconds
-	var/list/parts = list() //type paths of items that will be placed in the result
-	var/list/chem_catalysts = list() //like tool_behaviors but for reagents
+	var/tools[] = list() //type paths of items needed but not consumed
+	var/time = 3 SECONDS //time in deciseconds
+	var/parts[] = list() //type paths of items that will be placed in the result
+	var/chem_catalysts[] = list() //like tools but for reagents
 	var/category = CAT_NONE //where it shows up in the crafting UI
 	var/subcategory = CAT_NONE
 	var/always_available = TRUE //Set to FALSE if it needs to be learned first.
@@ -31,10 +28,6 @@
 /datum/crafting_recipe/New()
 	if(!(result in reqs))
 		blacklist += result
-	if(tool_behaviors)
-		tool_behaviors = string_list(tool_behaviors)
-	if(tool_paths)
-		tool_paths = string_list(tool_paths)
 
 /**
  * Run custom pre-craft checks for this recipe
@@ -48,7 +41,7 @@
 /datum/crafting_recipe/proc/on_craft_completion(mob/user, atom/result)
 	return
 
-// Computes the total reagents volume 
+// Computes the total reagents volume
 /datum/crafting_recipe/proc/get_parts_reagents_volume()
 	. = 0
 	for(var/list/L in parts)

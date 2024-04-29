@@ -26,7 +26,8 @@
 		list(/obj/item/stack/material/cloth = 6)
 	)
 	time = 90
-	category = CAT_CLOTHING
+	category = CAT_APPAREL
+	subcategory = CAT_CLOTHING
 
 /datum/crafting_recipe/primitive_shoes
 	name = "primitive shoes"
@@ -36,4 +37,5 @@
 		list(/obj/item/stack/material/cloth = 3)
 	)
 	time = 60
-	category = CAT_CLOTHING
+	category = CAT_APPAREL
+	subcategory = CAT_CLOTHING

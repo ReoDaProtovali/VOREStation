@@ -43,7 +43,11 @@
 					CAT_SPAGHETTI,
 				),
 				CAT_DRINK = CAT_NONE,
-				CAT_CLOTHING = CAT_NONE,
+				CAT_APPAREL = list(
+					CAT_CLOTHING,
+					CAT_ARMOR,
+					CAT_EQUIPMENT
+				)
 			)
 
 	var/cur_category = CAT_NONE
@@ -65,7 +69,7 @@
 // Returns a list of objects available
 /datum/component/personal_crafting/proc/get_environment(atom/a, list/blacklist = null, radius_range = 1)
 	. = list()
-
+	for(var/obj/item/I in user.held_items)
 	if(!isturf(a.loc))
 		return
 
@@ -82,6 +86,7 @@
 	.["instances"] = list()      // List of /obj/items available, maybe?
 	.["machinery"] = list()      // List of /obj/machinery available
 	for(var/obj/object in get_environment(a, blacklist))
+
 		if(isitem(object))
 			var/obj/item/item = object
 			LAZYADDASSOCLIST(.["instances"], item.type, item)
@@ -149,39 +154,44 @@
 	return R.check_requirements(a, requirements_list)
 
 /// Returns a boolean on whether the tool requirements of the input recipe are satisfied by the input source and surroundings.
-/datum/component/personal_crafting/proc/check_tools(atom/source, datum/crafting_recipe/R, list/surroundings)
-	if(!length(R.tool_behaviors) && !length(R.tool_paths))
+/datum/component/personal_crafting/proc/check_tools(mob/user, datum/crafting_recipe/R, list/surroundings)
+	if(!R.tools.len)
 		return TRUE
-	var/list/available_tools = list()
+	var/list/possible_tools = list()
 	var/list/present_qualities = list()
+	present_qualities |= contents["tool_behavior"]
+	for(var/obj/item/I in user.contents)
+		/* //Maybe if we get good organ code to allow cybernetics someday.
+		if(istype(I, /obj/item/organ/cyberimp/arm/toolset))
+			var/obj/item/organ/cyberimp/arm/toolset/T = I
+			if(T.owner == user)
+				for(var/obj/item/implant_item in I.contents)
+					possible_tools += implant_item.type
+					if(implant_item.tool_behaviour)
+						present_qualities.Add(implant_item.tool_behaviour)
+		*/
+		if(istype(I, /obj/item/weapon/storage))
+			for(var/obj/item/SI in I.contents)
+				possible_tools += SI.type
+				if(SI.tool_behaviour)
+					present_qualities.Add(SI.tool_behaviour)
 
-	for(var/obj/item/contained_item in source.contents)
-		// if(contained_item.GetComponent(/datum/component/storage))
-		if(istype(contained_item, /obj/item/weapon/storage)) // cursed
-			for(var/obj/item/subcontained_item in contained_item.contents)
-				available_tools[subcontained_item.type] = TRUE
-				for(var/behavior in subcontained_item.tool_qualities)
-					present_qualities[behavior] = TRUE
-		available_tools[contained_item.type] = TRUE
-		for(var/behavior in contained_item.tool_qualities)
-			present_qualities[behavior] = TRUE
+		possible_tools += I.type
 
-	for(var/quality in surroundings["tool_behaviour"])
-		present_qualities[quality] = TRUE
+		if(I.tool_behavior)
+			present_qualities.Add(SI.tool_behavior)
 
-	for(var/path in surroundings["other"])
-		available_tools[path] = TRUE
+	possible_tools |= contents["other"]
 
-	for(var/required_quality in R.tool_behaviors)
-		if(present_qualities[required_quality])
-			continue
-		return FALSE
-
-	for(var/required_path in R.tool_paths)
-		if(is_path_in_list(required_path, available_tools))
-			continue
-		return FALSE
-
+	main_loop:
+		for(var/A in R.tools)
+			if(A in present_qualities)
+				continue
+			else
+				for(var/I in possible_tools)
+					if(ispath(I, A))
+						continue main_loop
+			return FALSE
 	return TRUE
 
 /datum/component/personal_crafting/proc/check_reagents(atom/source, datum/crafting_recipe/R, list/surroundings)

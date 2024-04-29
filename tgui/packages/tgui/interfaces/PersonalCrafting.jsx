@@ -14,7 +14,11 @@ import { Window } from '../layouts';
 
 export const PersonalCrafting = (props) => {
   const { act, data } = useBackend();
-  const { busy, display_craftable_only, display_compact } = data;
+  const {
+    busy,
+    display_craftable_only,
+    display_compact
+  } = data;
   const crafting_recipes = data.crafting_recipes || {};
   // Sort everything into flat categories
   const categories = [];
@@ -61,7 +65,11 @@ export const PersonalCrafting = (props) => {
   const [tab, setTab] = useState(categories[0]?.name);
   const shownRecipes = recipes.filter((recipe) => recipe.category === tab);
   return (
-    <Window title="Crafting Menu" width={700} height={800}>
+    <Window
+      title="Crafting Menu"
+      width={800}
+      height={600}
+      resizable>
       <Window.Content scrollable>
         {!!busy && (
           <Dimmer fontSize="32px">
@@ -119,7 +127,11 @@ export const PersonalCrafting = (props) => {
 const CraftingList = (props) => {
   const { craftables = [] } = props;
   const { act, data } = useBackend();
-  const { craftability = {}, display_compact, display_craftable_only } = data;
+  const {
+    craftability = {},
+    display_compact,
+    display_craftable_only
+  } = data;
   return craftables.map((craftable) => {
     if (display_craftable_only && !craftability[craftable.ref]) {
       return null;

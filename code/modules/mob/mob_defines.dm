@@ -122,6 +122,22 @@
 	var/lastKnownIP = null
 	var/obj/buckled = null//Living
 
+	//Hands
+	///What hand is the active hand
+	var/active_hand_index = 1
+	/**
+	  * list of items held in hands
+	  *
+	  * len = number of hands, eg: 2 nulls is 2 empty hands, 1 item and 1 null is 1 full hand
+	  * and 1 empty hand.
+	  *
+	  * NB: contains nulls!
+	  *
+	  * held_items[active_hand_index] is the actively held item, but please use
+	  * get_active_held_item() instead, because OOP
+	  */
+	var/list/held_items = list()
+
 	var/seer = 0 //for cult//Carbon, probably Human
 
 	var/datum/hud/hud_used = null
