@@ -4,7 +4,7 @@
 
 /datum/category_item/catalogue/fauna/stardog
 	name = "Alien Wildlife - Star Dog"
-	desc = "I appears to be a canine of some sort, though absolutely massive in scale and surrounded in radical redspace energies!"
+	desc = "It appears to be a canine of some sort, though absolutely massive in scale and surrounded in radical redspace energies!"
 	value = CATALOGUER_REWARD_SUPERHARD
 
 /mob/living/simple_mob/vore/overmap/stardog
@@ -63,14 +63,46 @@
 	player_msg = "The dog accepts you into itself, allowing you to dictate what will happen. The dog occasionally thinks unknowable thoughts, though you can understand some of its needs and desires. The dog shares its experience with you. You can navigate space, 'transition' to certain locations, and you can dine upon some of the space weather. The dog doesn't seem to know how any of this works exactly, this is just how things are for the dog, they come as naturally to the dog as blinking."
 
 	var/affinity = 0
+	var/mob/living/controller //Person in control, using the control node.
 	var/obj/structure/control_pod/control_node = null
 	var/admin_override = FALSE	//If true, makes affinity and nutrition irrelevant.
 	var/list/weather_areas = list()	//We'll call a proc on these areas when we eat, don't worry!
 
 /mob/living/simple_mob/vore/overmap/stardog/Login()
+	if(node_controller)
+		player_msg = "The dog accepts you into itself, allowing you to dictate what will happen. The dog occasionally thinks unknowable thoughts, though you can understand some of its needs and desires. The dog shares its experience with you. You can navigate space, 'transition' to certain locations, and you can dine upon some of the space weather. The dog doesn't seem to know how any of this works exactly, this is just how things are for the dog, they come as naturally to the dog as blinking."
+
+	else
+		player_msg = ""
 	. = ..()
-	remove_verb(src, /mob/living/simple_mob/proc/set_name)
-	remove_verb(src, /mob/living/simple_mob/proc/set_desc)
+
+/mob/living/simple_mob/vore/overmap/stardog/Initialize(mapload)
+	. = ..()
+	child_om_marker.set_light(5, 1, "#ff8df5")
+
+	var/list/stardog_actions = list( //Add new actions here if you add new actions to the stardog
+		/datum/action/stardog/eat_space_weather,
+		/datum/action/stardog/view_self,
+		/datum/action/stardog/node_eject,
+	)
+	for(var/action_type in stardog_actions)
+		var/datum/action/new_action = new action_type()
+		new_action.Grant(src)
+
+/mob/living/simple_mob/vore/overmap/stardog/Destroy()
+	if(control_node)
+		if(control_node.host)
+			control_node.eject()
+		control_node.host = null
+		control_node = null
+	for(var/anything in weather_areas)
+		weather_areas -= anything
+	return ..()
+
+/mob/living/simple_mob/vore/overmap/stardog/get_status_tab_items()
+	. = ..()
+	. += ""
+	. += "Affinity: [round(affinity)]"
 
 /mob/living/simple_mob/vore/overmap/stardog/attack_hand(mob/living/user)
 	if(!(user.pickup_pref && user.pickup_active))
@@ -92,7 +124,7 @@
 	if(!that_one)
 		return ..()
 	to_chat(that_one, span_danger("\The [user]'s hand reaches toward you!!!"))
-	if(!do_after(user, 3 SECONDS, target = src))
+	if(!do_after(user, 3 SECONDS, src))
 		return ..()
 	if(!istype(that_one.loc,/turf/simulated/floor/outdoors/fur))
 		to_chat(user, span_warning("\The [that_one] got away..."))
@@ -147,6 +179,14 @@
 		child_om_marker.set_light(0)
 		movement_cooldown = 0
 
+/mob/living/simple_mob/vore/overmap/stardog/set_name()
+	to_chat(src, span_warning("You can't do that."))
+	return
+
+/mob/living/simple_mob/vore/overmap/stardog/set_desc()
+	to_chat(src, span_warning("You can't do that."))
+	return
+
 /mob/living/simple_mob/vore/overmap/stardog/perform_the_nom(mob/living/user, mob/living/prey, mob/living/pred, obj/belly/belly, delay_time)
 	to_chat(src, span_warning("You can't do that."))	//The dog can move back and forth between the overmap.
 	return															//If it can do normal vore mechanics, it can carry players to the OM,
@@ -155,23 +195,6 @@
 /mob/living/simple_mob/vore/overmap/stardog/begin_instant_nom(mob/living/user, mob/living/prey, mob/living/pred, obj/belly/belly)
 	to_chat(src, span_warning("You can't do that."))
 	return
-
-/mob/living/simple_mob/vore/overmap/stardog/Initialize(mapload)
-	. = ..()
-	child_om_marker.set_light(5, 1, "#ff8df5")
-
-/mob/living/simple_mob/vore/overmap/stardog/Destroy()
-	if(control_node)
-		control_node.host = null
-		control_node = null
-	for(var/anything in weather_areas)
-		weather_areas -= anything
-	return ..()
-
-/mob/living/simple_mob/vore/overmap/stardog/get_status_tab_items()
-	. = ..()
-	. += ""
-	. += "Affinity: [round(affinity)]"
 
 /mob/living/simple_mob/vore/overmap/stardog/start_pulling(var/atom/movable/AM)
 	if(!istype(loc, /turf/unsimulated/map))	//Don't pull stuff on the overmap
@@ -188,103 +211,6 @@
 	if(affinity > 1000)
 		affinity = 1000
 
-/mob/living/simple_mob/vore/overmap/stardog/verb/eject()
-	set name = "Eject"
-	set desc = "Stop controlling the dog and return to your own body."
-	set category = "Abilities.Stardog"
-
-	control_node.eject()
-
-/mob/living/simple_mob/vore/overmap/stardog/verb/eat_space_weather()
-	set name = "Eat Space Weather"
-	set desc = "Eat carp or rocks!"
-	set category = "Abilities.Stardog"
-
-	var/obj/effect/overmap/event/E
-	var/nut = 0
-	var/aff = 0
-	var/mob = FALSE
-	var/ore = 0
-	var/tre = 0
-	var/msg = "REPLACE ME"
-	var/heal = FALSE
-	var/delet = TRUE
-
-	for(var/obj/effect/overmap/event/e in loc)
-		if(istype(e, /obj/effect/overmap/event/carp))
-			E = e
-			nut = 250
-			aff = -50
-			mob = TRUE
-			var/list/msglist = list(
-				"You lap up \the [E]. They're pretty filling, but you don't really like the taste...",
-				"You lap up \the [E]. You can feel them wiggle all the way down... They don't taste very good, but you feel energized afterward.",
-				"You lap up \the [E]. They flee away from you, attempting to scatter in all directions, but you're faster! They leave an unpleasant taste on your tongue, but your belly doesn't seem to mind them."
-			)
-			msg = pick(msglist)
-		else if(istype(e, /obj/effect/overmap/event/dust))
-			E = e
-			aff = -100
-			tre = 15
-			ore = 25
-			var/list/msglist = list(
-				"You lap up \the [E]. The dust clings to your mouth and throat!!! You cough and splutter unhappily! It is literally space dirt, and it tastes like it!",
-				"You lap up \the [E]. The bitter taste of the dust sticks to your tongue and takes a lot of work to get off! It's really frustrating!",
-				"You lap up \the [E]. Not only does it taste horrible and feel worse going down, some of it gets in your eyes!"
-			)
-			msg = pick(msglist)
-		else if(istype(e, /obj/effect/overmap/event/meteor))
-			E = e
-			aff = -200
-			tre = 5
-			ore = 100
-			var/list/msglist = list(
-				"You lap up \the [E]. The rocks roll down your gullet haphazardly. Some of them knock together and clatter their way down, while others turn to powder. Some of them even have some pretty sharp edges that don't feel very nice! They certainly don't taste very nice, and they weight heavily inside of your belly...",
-				"You lap up \the [E]. When they land inside you can feel the weight of them settle in. They make your insides kind of queasy...",
-				"You lap up \the [E]. They taste like rocks, and make you think of all the better things you could be eating..."
-			)
-
-			msg = pick(msglist)
-		else if(istype(e, /obj/effect/overmap/event/electric))
-			E = e
-			aff = 15
-			msg = "You try to eat \the [E], but you find that no matter how much of it you lick or homn upon, yet more remains! It makes your mouth tingle, and your fur stand on end! It's kind of fun, but it doesn't taste like anything, and you definitely don't feel any more full."
-			delet = FALSE
-		else if(istype(e, /obj/effect/overmap/event/ion))
-			E = e
-			aff = 20
-			msg = "When you approach \the [E], you find that the dog's will pulls away from your own a little bit. It seems to really like the shimmering clouds, and it feels really good to nestle up among them. Like taking a relaxing dip into a regenerative spring. Any aches and pains that the dog was experiencing seem to fade away, leaving it feeling refreshed!"
-			heal = TRUE
-			delet = FALSE
-		else
-			to_chat(src, span_warning("You can't eat \the [e]."))
-			return
-
-	if(!E)
-		to_chat(src, span_warning("There isn't anything to eat here."))
-		return
-
-	to_chat(src, span_notice("You begin to eat \the [E]..."))
-
-	if(!do_after(src, 20 SECONDS, target = E))
-		return
-	to_chat(src, span_notice("[msg]"))
-	if(nut || aff)
-		adjust_nutrition(nut)
-		adjust_affinity(aff)
-	if(mob)
-		spawn_mob()
-		to_chat(src, span_notice("You can feel something moving inside of you..."))
-	if(ore)
-		spawn_ore(ore)
-	if(tre)
-		spawn_treasure(tre)
-	if(heal)
-		adjustFireLoss(-999)
-		adjustBruteLoss(-999)
-	if(delet)
-		qdel(E)
-
 /mob/living/simple_mob/vore/overmap/stardog/proc/spawn_mob()
 	for(var/area/redgate/stardog/flesh_abyss/a in weather_areas)
 		if(istype(a, /area/redgate/stardog/flesh_abyss))
@@ -297,6 +223,96 @@
 	for(var/area/redgate/stardog/flesh_abyss/a in weather_areas)
 		if(istype(a, /area/redgate/stardog/flesh_abyss) && prob(chance))
 			a.spawn_treasure()
+
+// Actions, abilities n stuff
+
+/datum/action/stardog
+	name = "stardog action"
+
+	background_icon = 'icons/turf/fur.dmi'
+	background_icon_state = "fur-color"
+	var/mob/living/simple_mob/vore/overmap/stardog/dog //Woof
+
+/datum/action/stardog/Grant(mob/M)
+	if(istype(M, /mob/living/simple_mob/vore/overmap/stardog))
+		dog = M
+		return  ..()
+	return FALSE
+
+/datum/action/stardog/view_self
+	name = "View Self"
+	desc = "Shift your view to look over your gargantuan, fluffy body!"
+
+	button_icon = 'icons/obj/flesh_machines.dmi'
+	button_icon_state = "control_node1"
+
+/datum/action/stardog/view_self/Trigger(trigger_flags)
+	to_chat(dog, span_notice("Woof. (Check back later)")) //Im 100% going to forget to finish this and leave it in the PR when I do that.
+
+/datum/action/stardog/node_eject
+	name = "Eject"
+	desc = "Stop controlling the dog and return to your own body."
+
+	button_icon = 'icons/obj/flesh_machines.dmi'
+	button_icon_state = "control_node1"
+
+/datum/action/stardog/node_eject/Trigger(trigger_flags)
+	if(!..())
+		return 0
+
+	dog.control_node.eject()
+
+/mob/living/simple_mob/vore/overmap/stardog/verb/eject()
+	set name = "Eject"
+	set desc = "Stop controlling the dog and return to your own body."
+	set category = "Abilities.Stardog"
+
+	control_node.eject()
+
+/datum/action/stardog/eat_space_weather
+	name = "Eat Space Weather"
+	desc = "Eat carp or rocks!"
+
+	button_icon = 'icons/obj/flesh_machines.dmi' //Make this an icon of the dog's mouth, maybe?
+	button_icon_state = "mouth"
+
+/datum/action/stardog/eat_space_weather/Trigger(trigger_flags)
+	if(!..())
+		return 0
+
+	dog.space_nom()
+
+/mob/living/simple_mob/vore/overmap/stardog/verb/eat_space_weather()
+	set name = "Eat Space Weather"
+	set desc = "Eat carp or rocks!"
+	set category = "Abilities.Stardog"
+
+	space_nom()
+
+/mob/living/simple_mob/vore/overmap/stardog/proc/space_nom()
+	var/obj/effect/overmap/event/weather
+	for(var/obj/effect/overmap/event/e in get_turf(src))
+		weather = e //Has to be here so that it's not null. Mostly for the variable message of not being able to eat vs nothing being there.
+		if(e.edible)
+			break
+
+	if(!weather)
+		to_chat(src, span_warning("There isn't anything to eat here."))
+		return FALSE
+	if(!weather.edible)
+		to_chat(src, span_warning("You can't eat \the [weather]."))
+		return FALSE
+
+	to_chat(src, span_notice("You begin to eat \the [weather]..."))
+	var/eat_time = 20 SECONDS
+	if(admin_override) //ravenous adminbus...
+		eat_time = 1 SECOND
+	if(!do_after(src, eat_time, weather))
+		to_chat(src, span_warning("You have to stay still to eat \the [weather]."))
+		return FALSE
+
+	weather.consume(src) //This is much more flexible than defining consumed actions here.
+	return TRUE
 
 /mob/living/simple_mob/vore/overmap/stardog/verb/transition()	//Don't ask how it works. I don't know. I didn't think about it. I just thought it would be cool.
 	set name = "Transition"
@@ -696,6 +712,8 @@
 
 /area/redgate/stardog/flesh_abyss/EvalValidSpawnTurfs()
 	for(var/turf/simulated/floor/F in src)
+		if(F.check_density())
+			continue
 		if(istype(F, /turf/simulated/floor/flesh))
 			valid_spawn_turfs |= F
 
@@ -703,55 +721,28 @@
 			if(istype(F, /turf/simulated/floor/water/digestive_enzymes))
 				valid_spawn_turfs |= F
 
+/area/redgate/stardog/flesh_abyss/LateInitialize()
+	. = ..()
+
 /area/redgate/stardog/flesh_abyss/spawn_flora_on_turf()
 	if(!spawnstuff)
 		return
-	if(!valid_flora.len)
-		log_mapping("[src] does not have a set valid flora list!")
-		return TRUE
-
-	var/obj/F
-	var/turf/Turf
-	var/howmany = rand(0,floracountmax)
-	for(var/floracount = 1 to howmany)
-		F = pickweight(valid_flora)
-		Turf = pick(valid_spawn_turfs)
-		if(!Turf.check_density())
-			new F(Turf)
+	. = ..()
 
 /area/redgate/stardog/flesh_abyss/spawn_mob_on_turf()
 	if(!spawnstuff)
 		return
-	if(!valid_mobs.len)
-		log_mapping("[src] does not have a set valid mobs list!")
-		return TRUE
+	. = ..()
 
-	var/mob/M
-	var/turf/Turf
-	if(semirandom)
-		for(var/groupscount = 1 to (semirandom_groups))
-			var/ourgroup = pickweight(valid_mobs)
-			var/goodnum = rand(semirandom_group_min, semirandom_group_max)
-			for(var/mobscount = 1 to (goodnum))
-				M = pickweight(ourgroup)
-				Turf = pick(valid_spawn_turfs)
-				if(!Turf.check_density())
-					var/mob/ourmob = new M(Turf)
-					adjust_mob(ourmob)
-	else
-		for(var/mobscount = 1 to mobcountmax)
-			M = pickweight(valid_mobs)
-			Turf = pick(valid_spawn_turfs)
-			if(!Turf.check_density())
-				var/mob/ourmob = new M(Turf)
-				adjust_mob(ourmob)
-
-/area/redgate/stardog/flesh_abyss/proc/spawn_mob()
+/// Separate from the default spawn proc, for custom mob input.
+/area/redgate/stardog/flesh_abyss/proc/spawn_mobs(var/list/mobs_to_spawn, amount)
 	if(!spawnstuff)
 		return
-	if(!valid_mobs.len)
-		log_mapping("[src] does not have a set valid mobs list!")
-		return
+	if(!LAZYLEN(mobs_to_spawn))
+		if(!valid_mobs)
+			log_mapping("[src] does not have a set valid mobs list!")
+			return
+		mobs_to_spawn = valid_mobs
 
 	if(!prob(mob_chance))
 		return
@@ -1026,7 +1017,12 @@
 
 /obj/structure/control_pod/Initialize(mapload)
 	. = ..()
+	return INITIALIZE_HINT_LATELOAD
+
+/obj/structure/control_pod/LateInitialize() //Should probably wait till everything else is ready...
+	. = ..()
 	set_up()
+
 
 /obj/structure/control_pod/proc/set_up()
 	var/obj/effect/overmap/visitable/ship/simplemob/stardog/s = get_overmap_sector(z)
@@ -1491,14 +1487,6 @@
 /turf/simulated/floor/water/digestive_enzymes/proc/digest_stuff(atom/movable/digest_target)	//I'm so sorry
 	. = FALSE
 
-	var/damage = 1
-	if(mobstuff && !linked_mob)	//You might be wondering how we got here. It all started when I decided that I would make a vore level and make some of the turfs affect some mob somewhere in the world. So I used some convenient tools that people who are actually smart made, to make this horrible abomination.
-		var/obj/effect/overmap/visitable/ship/simplemob/stardog/s = get_overmap_sector(z)
-		if(s && istype(s,/obj/effect/overmap/visitable/ship/simplemob/stardog))
-			linked_mob = s.parent	//dogge
-
-	if(linked_mob)	//Please for the love of all that is good, make all this mob shit its own proc, future me
-		damage += clamp(((500 - linked_mob.nutrition) / 100), 1 , 5)
 	var/list/stuff = list()
 	for(var/thing in src)
 		if(can_digest(thing))
@@ -1507,57 +1495,57 @@
 		return FALSE
 	var/thing = pick(stuff)	//We only think about one thing at a time, otherwise things get wacky
 	. = TRUE
-	if(ishuman(thing))
-		var/mob/living/carbon/human/H = thing
-		if(!H)
-			return
-		visible_message(runemessage = "blub...")
-		if(H.stat == DEAD)
-			H.unacidable = TRUE	//Don't touch this one again, we're gonna delete it in a second
-			H.release_vore_contents()
-			for(var/obj/item/W in H)
-				if(istype(W, /obj/item/organ/internal/mmi_holder/posibrain))
-					var/obj/item/organ/internal/mmi_holder/MMI = W
-					MMI.removed()
-				if(istype(W, /obj/item/implant/backup) || istype(W, /obj/item/nif) || istype(W, /obj/item/organ))
-					continue
-				H.drop_from_inventory(W)
-			if(linked_mob)
-				var/how_much = H.mob_size + H.nutrition
-				if(!H.ckey)
-					how_much = how_much / 10	//Braindead mobs are worth less
-				linked_mob.adjust_nutrition(how_much)
-				H.mind?.vore_death = TRUE
-				GLOB.prey_digested_roundstat++
-			qdel(H)	//glorp
-			return
-		H.burn_skin(damage)
-		if(linked_mob)
-			var/how_much = (damage * H.size_multiplier) * H.get_digestion_nutrition_modifier() * linked_mob.get_digestion_efficiency_modifier()
-			if(!H.ckey)
-				how_much = how_much / 10	//Braindead mobs are worth less
-			linked_mob.adjust_nutrition(how_much)
-	else if (isliving(thing))
+
+	var/damage = 1
+	if(mobstuff && !linked_mob)	//You might be wondering how we got here. It all started when I decided that I would make a vore level and make some of the turfs affect some mob somewhere in the world. So I used some convenient tools that people who are actually smart made, to make this horrible abomination.
+		var/obj/effect/overmap/visitable/ship/simplemob/stardog/s = get_overmap_sector(z)
+		if(s && istype(s,/obj/effect/overmap/visitable/ship/simplemob/stardog))
+			linked_mob = s.parent	//dogge
+	if(linked_mob)	//Please for the love of all that is good, make all this mob shit its own proc, future me
+		damage += clamp(((500 - linked_mob.nutrition) / 100), 1 , 5)
+
+	if(isliving(thing))
 		var/mob/living/L = thing
 		if(!L)
 			return
-		visible_message(runemessage = "blub...")
+		var/gurgle_message = pick( // Bit of variety...
+			prob(10);"* blub... *",
+			prob(10);"* gurgle... *",
+			prob(10);"* blorp... *",
+			prob(10);"* glurb... *"
+		)
+		runechat_message(gurgle_message) //visible_message runtimes if you only provide a runechat message.
+		//Mob digestion effects now
+		var/nutrition_value = 0
+
 		if(L.stat == DEAD)
 			L.unacidable = TRUE	//Don't touch this one again, we're gonna delete it in a second
 			L.release_vore_contents()
 			if(linked_mob)
-				var/how_much = L.mob_size + L.nutrition
+				nutrition_value = L.mob_size + L.nutrition
 				if(!L.ckey)
-					how_much = how_much / 10	//Braindead mobs are worth less
-				linked_mob.adjust_nutrition(how_much)
+					nutrition_value = nutrition_value / 10	//Braindead mobs are worth less
+				linked_mob.adjust_nutrition(nutrition_value)
+			if(iscarbon(thing)) // Humans (carbons) get a bit of special checking
+				var/mob/living/carbon/C = thing
+				for(var/obj/item/W in C)
+					if(istype(W, /obj/item/organ/internal/mmi_holder/posibrain))
+						var/obj/item/organ/internal/mmi_holder/MMI = W
+						MMI.removed()
+					if(istype(W, /obj/item/implant/backup) || istype(W, /obj/item/nif) || istype(W, /obj/item/organ))
+						continue
+					C.drop_from_inventory(W)
+
+				L.mind?.vore_death = TRUE
+				GLOB.prey_digested_roundstat++
 			qdel(L) //gloop
 			return
 		L.adjustFireLoss(damage)
 		if(linked_mob)
-			var/how_much = (damage * L.size_multiplier) * L.get_digestion_nutrition_modifier() * linked_mob.get_digestion_efficiency_modifier()
+			nutrition_value = (damage * L.size_multiplier) * L.get_digestion_nutrition_modifier() * linked_mob.get_digestion_efficiency_modifier()
 			if(!L.ckey)
-				how_much = how_much / 10	//Braindead mobs are worth less
-			linked_mob.adjust_nutrition(how_much)
+				nutrition_value = nutrition_value / 10	//Braindead mobs are worth less
+			linked_mob.adjust_nutrition(nutrition_value)
 
 /turf/simulated/floor/flesh/mover
 	icon_state = "flesh_floor_mover"

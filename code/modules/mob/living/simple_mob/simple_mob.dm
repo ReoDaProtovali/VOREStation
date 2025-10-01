@@ -247,7 +247,7 @@
 	. = ..()
 	add_verb(src,/mob/living/simple_mob/proc/pick_size)
 	add_verb(src,/mob/living/simple_mob/proc/pick_color)
-	to_chat(src,span_boldnotice("You are \the [src].") + " [player_msg]")
+	to_chat(src,span_boldnotice("You are \the [src].") + player_msg ? "\n[player_msg]" : "")
 	if(vore_active && !voremob_loaded)
 		init_vore(TRUE)
 	if(hasthermals)
