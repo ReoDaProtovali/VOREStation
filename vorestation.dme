@@ -2832,6 +2832,7 @@
 #include "code\modules\events\spontaneous_appendicitis.dm"
 #include "code\modules\events\supply_demand_vr.dm"
 #include "code\modules\events\wallrot.dm"
+#include "code\modules\evil_fucking_pirates\keg.dm"
 #include "code\modules\examine\examine.dm"
 #include "code\modules\examine\descriptions\armor.dm"
 #include "code\modules\examine\descriptions\atmospherics.dm"
