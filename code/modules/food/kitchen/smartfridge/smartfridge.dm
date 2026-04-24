@@ -21,9 +21,11 @@
 	var/scan_id = 1
 	var/is_secure = 0
 	var/wrenchable = 0
-	var/datum/wires/smartfridge/wires = null
 	var/persistent = null // Path of persistence datum used to track contents
 	circuit = /obj/item/circuitboard/smartfridge //This one is meant to be uncraftable, however.
+
+	var/datum/looping_sound/fridge/soundloop
+	var/playing_sound = FALSE
 
 /obj/machinery/smartfridge/secure
 	is_secure = 1
@@ -33,9 +35,11 @@
 	if(persistent)
 		SSpersistence.track_value(src, persistent)
 	if(is_secure)
-		wires = new/datum/wires/smartfridge/secure(src)
+		set_wires(new /datum/wires/smartfridge/secure(src))
 	else
-		wires = new/datum/wires/smartfridge(src)
+		set_wires(new /datum/wires/smartfridge(src))
+
+	soundloop = new(list(src), FALSE)
 	update_icon()
 	default_apply_parts()
 
@@ -46,6 +50,7 @@
 	wires = null
 	if(persistent)
 		SSpersistence.forget_value(src, persistent)
+	QDEL_NULL(soundloop)
 	return ..()
 
 /obj/machinery/smartfridge/proc/accept_check(obj/item/O)
@@ -53,7 +58,12 @@
 
 /obj/machinery/smartfridge/process()
 	if(stat & (BROKEN|NOPOWER))
+		soundloop.stop()
+		playing_sound = FALSE
 		return
+	if(!playing_sound && !stat)
+		soundloop.start()
+		playing_sound = TRUE
 	if(src.seconds_electrified > 0)
 		src.seconds_electrified--
 	if(src.shoot_inventory && prob(2))
@@ -64,6 +74,12 @@
 	..()
 	if(old_stat != stat)
 		update_icon()
+		if(stat & (NOPOWER | BROKEN))
+			soundloop.stop()
+			playing_sound = FALSE
+		else
+			soundloop.start()
+			playing_sound = TRUE
 
 /obj/machinery/smartfridge/update_icon()
 	cut_overlays()
