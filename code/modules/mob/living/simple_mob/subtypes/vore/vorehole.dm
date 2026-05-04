@@ -24,8 +24,6 @@
 	name = parent_hole.name
 	desc = parent_hole.desc
 
-
-
 /mob/living/simple_mob/vorehole/Login()
 	. = ..()
 	remove_verb(src, /mob/living/simple_mob/proc/set_gender) //The hole does not have a gender
@@ -50,41 +48,83 @@
 	if(newdesc)
 		desc = newdesc
 		if(parent_hole)
-			parent_hole.desc = .
+			parent_hole.desc = newdesc
 
 /mob/living/simple_mob/vorehole/proc/try_swallow()
+	if(!parent_hole)
+		return
+	parent_hole.start_gulp()
 
+/// Action button stuff here.
 
-/datum/action/innate/vorehole_state_toggle
-	name = "Toggle swallow mode."
+/datum/action/vorehole
+	button_icon = 'icons/mob/hole.dmi'
+	button_icon_state = "hole"
+
 	check_flags = AB_CHECK_RESTRAINED | AB_CHECK_STUNNED | AB_CHECK_CONSCIOUS
 
-	var/obj/structure/vorehole/hole
+	var/obj/structure/vorehole/myhole //IT WAS MADE FOR ME
+	var/base_state = ""
 
-/datum/action/innate/vorehole_state_toggle/Grant(mob/grant_to, obj/structure/_vorehole)
+/datum/action/vorehole/Destroy()
+	myhole = null
 	. = ..()
 
-	hole = _vorehole
-	//active means it's in swallow hazard mode. If it's already in that state when we're granted, we should also start active.
-	if(hole && hole.hole_state == HOLE_SWALLOW_HAZARD)
-		active = TRUE
 
-/datum/action/innate/vorehole_state_toggle/Trigger(trigger_flags)
-	if(!hole || hole.hole_state <= HOLE_INACTIVE) // No changing state if you're in the middle of a swallow or otherwise inactive.
+/datum/action/vorehole/Grant(mob/grant_to, obj/structure/_vorehole)
+	if(_vorehole)
+		myhole = _vorehole
+		button_icon = myhole.icon
+		base_state = myhole.icon_state
+		build_all_button_icons(UPDATE_BUTTON_ICON)
+	..()
+
+/datum/action/vorehole/state_toggle
+	name = "Toggle Swallow mode"
+
+/datum/action/vorehole/state_toggle/Grant(mob/grant_to, obj/structure/_vorehole)
+	..()
+
+/datum/action/vorehole/state_toggle/IsAvailable()
+	. = ..()
+	if(!myhole || myhole.hole_state <= HOLE_INACTIVE) // No changing state if you're in the middle of a swallow or otherwise inactive.
 		to_chat(owner, span_warning("You cant change your state at the moment..."))
+		return FALSE
+
+/datum/action/vorehole/state_toggle/Trigger(trigger_flags)
+	if(!..())
 		return
-	. = ..()
+	//If not in hazard mode, set it to hazard. otherwise, just become active.
+	if(myhole && myhole.hole_state != HOLE_SWALLOW_HAZARD)
+		to_chat(owner, span_notice("You prepare to readily swallow anything that gets too close."))
+		myhole.hole_state = HOLE_SWALLOW_HAZARD
+		button_icon_state = base_state
+	else
+		to_chat(owner, span_notice("You will now hold shut until you initiate a swallow."))
+		myhole.hole_state = HOLE_ACTIVE
+		button_icon_state = "[base_state]_clenched"
+	//Update the button icon.
+	build_all_button_icons(UPDATE_BUTTON_ICON)
 
-/datum/action/innate/vorehole_state_toggle/Activate()
-	hole.hole_state = HOLE_SWALLOW_HAZARD
-	to_chat(owner, span_notice("You prepare to readily swallow anything that gets too close."))
-
-/datum/action/innate/vorehole_state_toggle/Deactivate()
-	hole.hole_state = HOLE_ACTIVE
-	to_chat(owner, span_notice("You will now hold shut until you manually try to swallow."))
-
-/datum/action/vorehole_try_swallow
+/datum/action/vorehole/try_swallow
 	name = "Swallow"
+
+/datum/action/vorehole/try_swallow/IsAvailable()
+	. = ..()
+	if(!myhole || myhole.hole_state <= HOLE_INACTIVE)
+		return FALSE
+
+/datum/action/vorehole/try_swallow/Trigger(trigger_flags)
+	if(!..())
+		return
+	if(istype(owner, /mob/living/simple_mob/vorehole))
+		var/mob/living/simple_mob/vorehole/owner_hole = owner
+		owner_hole.try_swallow()
+
+/// Vorebelly stuff here
+
+/mob/living/simple_mob/vorehole/load_default_bellies()
+	. = parent_hole.setup_mob_vorebellies(src)
 
 #undef HOLE_CLENCHING
 #undef HOLE_INACTIVE
