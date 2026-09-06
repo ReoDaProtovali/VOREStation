@@ -39,11 +39,12 @@
 	else
 		icon_state = initial(icon_state)
 
-/obj/structure/spring_trap/Initialize(mapload, obj/item/spring_trap_self_resetting/crafted_kit)
+/obj/structure/spring_trap/Initialize(mapload, obj/item/spring_trap_kit/resetting/crafted_kit)
 	. = ..()
 	//Create a kit for dropping when deconstructed.
 	if(crafted_kit)
-
+		stored_kit = crafted_kit
+		stored_kit.forceMove(src)
 	if(ispath(stored_kit))
 		stored_kit = new stored_kit(src)
 
@@ -184,7 +185,7 @@
 	user.visible_message(span_danger("[user] starts to construct \the [src]."), span_notice("You start constructing \the [src]"))
 	if(do_after(user, 5 SECONDS, target = src))
 		playsound(src, 'sound/machines/click.ogg', 50, 1)
-		var/obj/structure/spring_trap/spring_trap = new(get_turf(src))
+		var/obj/structure/spring_trap/spring_trap = new(get_turf(user), src)
 		spring_trap.add_fingerprint(user)
 		spring_trap.dir = user.dir
 		if(reset_time)
