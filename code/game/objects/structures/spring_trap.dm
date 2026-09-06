@@ -165,11 +165,14 @@
 	name = "spring trap assembly kit"
 	icon = 'icons/obj/items.dmi'
 	icon_state = "spring_trap-kit"
+	matter = list(MAT_STEEL = MATERIAL_COST(9))
 	/// Sets the cooldown on construct. Null means only manual reset.
 	var/reset_time = null
 
 /obj/item/spring_trap_kit/resetting
 	name = "self-resetting spring trap assembly kit"
+	matter = list(MAT_STEEL = MATERIAL_COST(9.13), MAT_GLASS = MATERIAL_COST(0.015)) // 9 sheets, plus the cost of a motor and 2 cable coils.
+
 	reset_time = 15 SECONDS
 
 /obj/item/spring_trap_kit/adminbus
