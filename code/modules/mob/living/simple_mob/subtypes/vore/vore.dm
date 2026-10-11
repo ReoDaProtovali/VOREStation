@@ -49,6 +49,7 @@
 	selective_preference = client.prefs_vr.selective_preference
 	size_strip_preference = client.prefs_vr.size_strip_preference
 	eating_privacy_global = client.prefs_vr.eating_privacy_global
+	vore_death_privacy = client.prefs_vr.vore_death_privacy
 	allow_mimicry = client.prefs_vr.allow_mimicry
 	allowtemp = client.prefs_vr.allowtemp
 
@@ -120,3 +121,6 @@
 
 /mob/living/simple_mob/vore/aggressive
 	mob_bump_flag = HEAVY
+
+	export_research_value = TECHWEB_TIER_1_POINTS
+	export_research_diminished_max = 5

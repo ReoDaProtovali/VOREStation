@@ -11,7 +11,7 @@
 	w_class = ITEMSIZE_SMALL
 	throw_speed = 5
 	throw_range = 10
-	matter = list(MAT_STEEL = 200)
+	matter = list(MAT_STEEL = MATERIAL_COST(0.1))
 	var/mode = 1;
 	var/advscan = SCANNABLE_BENEFICIAL
 	var/showadvscan = 1
@@ -38,8 +38,9 @@
 	scan_mob(M, user) //default surgery behaviour is just to scan as usual
 	return 1
 
-/obj/item/healthanalyzer/attack(mob/living/M, mob/living/user)
+/obj/item/healthanalyzer/attack(mob/living/M, mob/living/user, target_zone, attack_modifier)
 	scan_mob(M, user)
+	return ITEM_INTERACT_SUCCESS
 
 /obj/item/healthanalyzer/proc/scan_mob(mob/living/M, mob/living/user)
 	var/dat = ""

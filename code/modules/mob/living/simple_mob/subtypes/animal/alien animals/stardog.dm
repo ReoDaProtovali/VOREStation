@@ -163,7 +163,7 @@
 	. += ""
 	. += "Affinity: [round(affinity)]"
 
-/mob/living/simple_mob/vore/overmap/stardog/start_pulling(var/atom/movable/AM)
+/mob/living/simple_mob/vore/overmap/stardog/start_pulling(atom/movable/AM)
 	if(!istype(loc, /turf/unsimulated/map))	//Don't pull stuff on the overmap
 		..()
 
@@ -914,7 +914,7 @@
 	requires_power = 0
 	spawnstuff = FALSE
 
-/area/redgate/stardog/flesh_abyss/play_ambience(var/mob/living/L, initial = TRUE)
+/area/redgate/stardog/flesh_abyss/play_ambience(mob/living/L, initial = TRUE)
 	if(!L.check_sound_preference(/datum/preference/toggle/digestion_noises))
 		return
 	..()
@@ -1345,10 +1345,9 @@
 	teleport_message = span_notice("The thundering drum of the dog's heart beat throbs all around you, while the sweltering heat of its body soaks into you. It's soft and wet as a symphony of gurgles and glorps fills the steamy air!")
 
 /obj/effect/dog_teleporter/food_gobbler/Crossed(atom/movable/AM)
-
+	. = ..()
 	if(istype(AM, /obj/item/reagent_containers/food))
 		gobble_food(AM)
-	else return	..()
 
 /obj/effect/dog_teleporter/food_gobbler/proc/gobble_food(obj/item/I)
 	if(!isitem(I))

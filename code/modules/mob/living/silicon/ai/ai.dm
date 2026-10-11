@@ -171,6 +171,20 @@ GLOBAL_LIST_INIT(ai_verbs_default, list(
 	add_language(LANGUAGE_ROOTLOCAL, 1)
 	add_language(LANGUAGE_TERMINUS, 1)
 	add_language(LANGUAGE_ZADDAT, 1)
+	add_language(LANGUAGE_VESPINAE, 1)
+	add_language(LANGUAGE_SPACER, 1)
+	add_language(LANGUAGE_ECHOSONG, 1)
+	add_language(LANGUAGE_TEPPI, 1)
+	add_language(LANGUAGE_VOX, 1)
+	add_language(LANGUAGE_ENOCHIAN, 1)
+	add_language(LANGUAGE_DAEMON, 1)
+	add_language(LANGUAGE_ECUREUILIAN, 1)
+	add_language(LANGUAGE_CANILUNZT, 1)
+	add_language(LANGUAGE_SAGARU, 1)
+	add_language(LANGUAGE_BIRDSONG, 1)
+	add_language(LANGUAGE_DRUDAKAR, 1)
+	add_language(LANGUAGE_PROMETHEAN, 1)
+	add_language(LANGUAGE_ALAI, 1)
 
 	if(!safety)//Only used by AIize() to successfully spawn an AI.
 		if (!B)//If there is no player/brain inside.
@@ -531,7 +545,7 @@ GLOBAL_LIST_INIT(ai_verbs_default, list(
 			new_eye.set_light(0)
 
 
-/mob/living/silicon/ai/proc/switchCamera(var/obj/machinery/camera/C)
+/mob/living/silicon/ai/proc/switchCamera(obj/machinery/camera/C)
 	if (!C || stat == DEAD) //C.can_use())
 		return 0
 
@@ -567,7 +581,7 @@ GLOBAL_LIST_INIT(ai_verbs_default, list(
 	cameralist = sortAssoc(cameralist)
 	return cameralist
 
-/mob/living/silicon/ai/proc/ai_network_change(var/network in get_camera_network_list())
+/mob/living/silicon/ai/proc/ai_network_change(network in get_camera_network_list())
 	set category = "AI.Camera Control"
 	set name = "Jump To Network"
 	unset_machine()
@@ -839,7 +853,7 @@ GLOBAL_LIST_INIT(ai_verbs_default, list(
 	to_chat(src, span_filter_notice("Your hologram will [hologram_follow ? "follow" : "no longer follow"] you now."))
 
 
-/mob/living/silicon/ai/proc/check_unable(var/flags = NONE, var/feedback = 1)
+/mob/living/silicon/ai/proc/check_unable(flags = NONE, feedback = 1)
 	if(stat == DEAD)
 		if(feedback)
 			to_chat(src, span_warning("You are dead!"))
@@ -897,7 +911,7 @@ GLOBAL_LIST_INIT(ai_verbs_default, list(
 	else
 		to_chat(src, span_warning("Target is not on or near any active cameras on the station."))
 
-/mob/living/silicon/ai/ex_act(var/severity)
+/mob/living/silicon/ai/ex_act(severity)
 	if(severity == 1.0)
 		qdel(src)
 		return
@@ -1030,6 +1044,9 @@ GLOBAL_LIST_INIT(ai_verbs_default, list(
 	GLOB.ai_list -= src
 	GLOB.silicon_mob_list -= src
 	QDEL_NULL(eyeobj)
+
+/mob/living/silicon/ai/CanObtainCentcommMessage()
+	return TRUE
 
 #undef AI_CHECK_WIRELESS
 #undef AI_CHECK_RADIO

@@ -15,7 +15,6 @@
 	var/list/clothing_traits
 
 	var/flash_protection = FLASH_PROTECTION_NONE
-	var/tint = TINT_NONE
 	var/list/enables_planes		//Enables these planes in the wearing mob's plane_holder
 	var/list/plane_slots		//But only if it's equipped into this specific slot
 
@@ -54,7 +53,7 @@
 		add_blood()
 	. = ..()
 
-/obj/item/clothing/equipped(var/mob/user,var/slot)
+/obj/item/clothing/equipped(mob/user,slot)
 	..()
 	if(enables_planes)
 		user.recalculate_vis()
@@ -68,6 +67,10 @@
 		user.recalculate_vis()
 	for(var/trait in clothing_traits)
 		REMOVE_CLOTHING_TRAIT(user, trait)
+
+/obj/item/clothing/click_alt(mob/user)
+	if(Adjacent(user) || user == src.loc)
+		removetie_proc(user)
 
 //BS12: Species-restricted clothing check.
 /obj/item/clothing/mob_can_equip(mob/M, slot, disable_warning = FALSE, ignore_obstruction, go_over_slot)
@@ -108,7 +111,7 @@
 				return FALSE
 	return TRUE
 
-/obj/item/clothing/handle_shield(mob/user, var/damage, atom/damage_source = null, mob/attacker = null, var/def_zone = null, var/attack_text = "the attack")
+/obj/item/clothing/handle_shield(mob/user, damage, atom/damage_source = null, mob/attacker = null, def_zone = null, attack_text = "the attack")
 	. = ..()
 	if((. == 0) && LAZYLEN(accessories))
 		for(var/obj/item/I in accessories)
@@ -119,7 +122,7 @@
 				break
 
 // For now, these two temp procs only return TRUE or FALSE if they can provide resistance to a given temperature.
-/obj/item/clothing/proc/handle_low_temperature(var/tempcheck = T20C)
+/obj/item/clothing/proc/handle_low_temperature(tempcheck = T20C)
 	. = FALSE
 	if(LAZYLEN(accessories))
 		for(var/obj/item/clothing/C in accessories)
@@ -129,7 +132,7 @@
 	if(min_cold_protection_temperature && min_cold_protection_temperature <= tempcheck)
 		. = TRUE
 
-/obj/item/clothing/proc/handle_high_temperature(var/tempcheck = T20C)
+/obj/item/clothing/proc/handle_high_temperature(tempcheck = T20C)
 	. = FALSE
 	if(LAZYLEN(accessories))
 		for(var/obj/item/clothing/C in accessories)
@@ -154,7 +157,7 @@
 		for(var/obj/item/clothing/C in accessories)
 			. |= C.get_heat_protection_flags()
 
-/obj/item/clothing/proc/refit_for_species(var/target_species)
+/obj/item/clothing/proc/refit_for_species(target_species)
 	if(!species_restricted)
 		return //this item doesn't use the species_restricted system
 
@@ -253,7 +256,7 @@
 		var/mob/M = src.loc
 		M.update_inv_ears()
 
-/obj/item/clothing/ears/MouseDrop(var/obj/over_object)
+/obj/item/clothing/ears/MouseDrop(obj/over_object)
 	if(ishuman(usr))
 		var/mob/living/carbon/human/H = usr
 		// If this covers both ears, we want to return the result of unequipping the primary object, and kill the off-ear one
@@ -348,7 +351,7 @@
 		M.update_inv_gloves()
 
 // Called just before an attack_hand(), in mob/UnarmedAttack()
-/obj/item/clothing/gloves/proc/Touch(var/atom/A, var/proximity)
+/obj/item/clothing/gloves/proc/Touch(atom/A, proximity)
 	return 0 // return 1 to cancel attack_hand()
 
 /*/obj/item/clothing/gloves/attackby(obj/item/W, mob/user)
@@ -510,7 +513,7 @@
 		update_flashlight(user)
 		to_chat(user, "You [light_on ? "enable" : "disable"] the helmet light.")
 
-/obj/item/clothing/head/proc/update_flashlight(var/mob/user = null)
+/obj/item/clothing/head/proc/update_flashlight(mob/user = null)
 	set_light_on(!light_on)
 
 	if(light_system == STATIC_LIGHT)
@@ -519,15 +522,15 @@
 	update_icon(user)
 	user.update_mob_action_buttons()
 
-/obj/item/clothing/head/attack_ai(var/mob/user)
+/obj/item/clothing/head/attack_ai(mob/user)
 	if(!mob_wear_hat(user))
 		return ..()
 
-/obj/item/clothing/head/attack_generic(var/mob/user)
+/obj/item/clothing/head/attack_generic(mob/user)
 	if(!mob_wear_hat(user))
 		return ..()
 
-/obj/item/clothing/head/proc/mob_wear_hat(var/mob/user)
+/obj/item/clothing/head/proc/mob_wear_hat(mob/user)
 	if(!Adjacent(user))
 		return 0
 	var/success
@@ -554,7 +557,7 @@
 		to_chat(user, span_notice("You crawl under \the [src]."))
 	return 1
 
-/obj/item/clothing/head/update_icon(var/mob/user)
+/obj/item/clothing/head/update_icon(mob/user)
 	var/mob/living/carbon/human/H
 	if(ishuman(user))
 		H = user
@@ -657,9 +660,14 @@
 	var/water_speed = 0		//Speed boost/decrease in water, lower/negative values mean more speed
 	var/snow_speed = 0		//Speed boost/decrease on snow, lower/negative values mean more speed
 
-	var/step_volume_mod = 1	//How quiet or loud footsteps in this shoe are
+	///How quiet/loud liquid sloshing from bellies is when using this shoe. Directly multiplies the volume by this number.
+	var/step_volume_mod = 1
 	var/obj/item/clothing/shoes/shoes = null	//If we are wearing shoes in our shoes. Used primarily for magboots.
 	var/blocks_footsteps = TRUE //Does this shoe block custom footstep sounds?
+	///Uses a custom footstep sound instead of default. Uses 'get_sfx'
+	var/custom_footstep = null
+	///Custom volume sound for the above.
+	var/custom_footstep_volume = null
 
 	permeability_coefficient = 0.50
 	slowdown = SHOES_SLOWDOWN
@@ -720,13 +728,13 @@
 	update_icon()
 	return
 
-/obj/item/clothing/shoes/attack_hand(var/mob/living/M)
+/obj/item/clothing/shoes/attack_hand(mob/living/M)
 	if(can_hold_knife == 1 && holding && src.loc == M)
 		draw_knife(M)
 		return
 	..()
 
-/obj/item/clothing/shoes/attackby(var/obj/item/I, var/mob/user)
+/obj/item/clothing/shoes/attackby(obj/item/I, mob/user)
 	if((can_hold_knife == 1) && (istype(I, /obj/item/material/shard) || \
 		istype(I, /obj/item/material/butterfly) || \
 		istype(I, /obj/item/material/kitchen/utensil) || \
@@ -772,7 +780,7 @@
 	track_blood = 0
 	update_icon()
 
-/obj/item/clothing/shoes/proc/handle_movement(var/turf/walking, var/running, var/mob/living/carbon/human/pred)
+/obj/item/clothing/shoes/proc/handle_movement(turf/walking, running, mob/living/carbon/human/pred)
 	if(!recent_squish && istype(pred))
 		recent_squish = 1
 		VARSET_IN(src, recent_squish, FALSE, 4 SECONDS) // Reset the recent squish timer
@@ -785,7 +793,7 @@
 	return
 
 //In shoe steppies!
-/obj/item/clothing/shoes/proc/handle_inshoe_stepping(var/mob/living/carbon/human/pred, var/mob/living/carbon/human/prey)
+/obj/item/clothing/shoes/proc/handle_inshoe_stepping(mob/living/carbon/human/pred, mob/living/carbon/human/prey)
 	if(!istype(pred)) return //Sorry, inshoe steppies only for carbon/human/ for now. Based on the regular stepping mechanics
 	if(!istype(prey)) return
 	if(!pred.canmove || pred.buckled) return //We can't be stepping on anyone if buckled or incapable of moving
@@ -1048,7 +1056,7 @@
 		var/mob/M = src.loc
 		M.update_inv_wear_suit()
 
-/obj/item/clothing/suit/equipped(var/mob/user, var/slot)
+/obj/item/clothing/suit/equipped(mob/user, slot)
 	if(ishuman(user))
 		var/mob/living/carbon/human/H = user
 		var/taurtail = istaurtail(H.tail_style)
@@ -1057,7 +1065,7 @@
 
 	return ..()
 
-/obj/item/clothing/suit/proc/taurize(var/mob/living/carbon/human/taur, has_taur_tail = FALSE)
+/obj/item/clothing/suit/proc/taurize(mob/living/carbon/human/taur, has_taur_tail = FALSE)
 	if(has_taur_tail)
 		var/datum/sprite_accessory/tail/taur/taurtail = taur.tail_style
 		if(taurtail.suit_sprites && (icon_exists(taurtail.suit_sprites, get_worn_icon_state(slot_wear_suit_str))))
@@ -1074,14 +1082,14 @@
 		taurized = FALSE
 
 // Taur suits need to be shifted so its centered on their taur half.
-/obj/item/clothing/suit/make_worn_icon(var/body_type,var/slot_name,var/inhands,var/default_icon,var/default_layer = 0,var/icon/clip_mask)
+/obj/item/clothing/suit/make_worn_icon(body_type,slot_name,inhands,default_icon,default_layer = 0,icon/clip_mask)
 	var/image/standing = ..()
 	if(taurized) //Special snowflake var on suits
 		standing.pixel_x = -16
 		standing.layer = BODY_LAYER + TAIL_UPPER_LAYER + 1
 	return standing
 
-/obj/item/clothing/suit/apply_accessories(var/image/standing)
+/obj/item/clothing/suit/apply_accessories(image/standing)
 	if(LAZYLEN(accessories) && taurized)
 		for(var/obj/item/clothing/accessory/A in accessories)
 			var/image/I = new(A.get_mob_overlay())
@@ -1100,7 +1108,7 @@
 		slot_r_hand_str = 'icons/mob/items/righthand_uniforms.dmi',
 		)
 	name = "under"
-	body_parts_covered = ARMS|LEGS|ARMS
+	body_parts_covered = ARMS|LEGS|CHEST
 	permeability_coefficient = 0.90
 	slot_flags = SLOT_ICLOTHING
 	heat_protection = ARMS|LEGS|CHEST
@@ -1160,7 +1168,7 @@
 
 	update_icon_define_digi = "icons/inventory/uniform/mob_digi.dmi"
 
-/obj/item/clothing/under/attack_hand(var/mob/user)
+/obj/item/clothing/under/attack_hand(mob/user)
 	if(LAZYLEN(accessories))
 		..()
 	if ((ishuman(user) || issmall(user)) && src.loc == user)
@@ -1402,7 +1410,7 @@
 	wearer = null
 	return ..()
 
-/obj/item/clothing/proc/handle_digitigrade(var/mob/user)
+/obj/item/clothing/proc/handle_digitigrade(mob/user)
 	if(ishuman(user))
 		var/mob/living/carbon/human/H = user
 
@@ -1436,15 +1444,15 @@
 				else
 					update_icon_define = null
 
-/obj/item/clothing/shoes/equipped(var/mob/user, var/slot)
+/obj/item/clothing/shoes/equipped(mob/user, slot)
 	. = ..()
 	handle_digitigrade(user)
 
-/obj/item/clothing/suit/equipped(var/mob/user, var/slot)
+/obj/item/clothing/suit/equipped(mob/user, slot)
 	. = ..()
 	handle_digitigrade(user)
 
-/obj/item/clothing/under/equipped(var/mob/user, var/slot)
+/obj/item/clothing/under/equipped(mob/user, slot)
 	. = ..()
 	handle_digitigrade(user)
 

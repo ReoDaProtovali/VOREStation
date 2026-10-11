@@ -56,11 +56,11 @@
 		if(!owner.lying)
 			owner.lay_down()
 
-/datum/component/xenochimera/proc/set_revival_delay(var/time)
+/datum/component/xenochimera/proc/set_revival_delay(time)
 	revive_ready = REVIVING_NOW
 	revive_finished = (world.time + time SECONDS) // When do we finish reviving? Allows us to find out when we're done, called by the alert currently.
 
-/datum/component/xenochimera/proc/trigger_revival(var/from_save_slot)
+/datum/component/xenochimera/proc/trigger_revival(from_save_slot)
 	ASSERT(revival_record)
 	if(owner.isSynthetic())
 		revival_record.revive_xenochimera(owner,TRUE,from_save_slot)
@@ -119,6 +119,9 @@
 	if(feral)
 		//We're feral
 		feral_state = TRUE
+		if(owner.nutrition > 0)
+			owner.heal_overall_damage(0.2, 0.2, FALSE) //slowly heal over time. This comes out to 1 health of each type every 10 seconds. Prevents being softlocked due to paincrit
+			owner.adjustToxLoss(-0.2)
 
 		//If they're still stressed, they stay feral
 		if(currentstress >= 15)
@@ -219,7 +222,7 @@
 	// HUD update time
 	update_xenochimera_hud(danger, feral_state)
 
-/datum/component/xenochimera/proc/update_xenochimera_hud(var/danger, var/feral)
+/datum/component/xenochimera/proc/update_xenochimera_hud(danger, feral)
 	if(owner.xenochimera_danger_display)
 		owner.xenochimera_danger_display.invisibility = INVISIBILITY_NONE
 		if(danger && feral)
@@ -233,7 +236,7 @@
 
 	return
 
-/datum/component/xenochimera/proc/go_feral(var/stress, var/cause)
+/datum/component/xenochimera/proc/go_feral(stress, cause)
 	// Going feral due to hunger
 	if(cause == "hunger")
 		to_chat(owner,span_danger(span_large("Something in your mind flips, your instincts taking over, no longer able to fully comprehend your surroundings as survival becomes your primary concern - you must feed, survive, there is nothing else. Hunt. Eat. Hide. Repeat.")))
@@ -438,7 +441,7 @@
 			add_modifier(/datum/modifier/resleeving_sickness/chimera, sickness_duration)
 			adjustBrainLoss(5) // if they're reviving from dead, they come back with 5 brainloss on top of whatever's unhealed.
 
-/datum/component/xenochimera/proc/chimera_hatch(var/from_save_slot)
+/datum/component/xenochimera/proc/chimera_hatch(from_save_slot)
 	if(!owner)
 		return
 

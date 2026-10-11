@@ -68,6 +68,7 @@
 		"beacon",
 		"beacon_locator",
 		"chameleon",
+		"clerical",
 		"shelter_capsule",
 		"shelter_capsule_luxury",
 		"shelter_capsule_recroom",
@@ -138,6 +139,17 @@
 		"reactive_armour",
 	)
 	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = TECHWEB_TIER_3_POINTS)
+	announce_channels = list(CHANNEL_SCIENCE)
+
+/datum/techweb_node/anomaly_shells
+	id = TECHWEB_NODE_ANOMALY_SHELLS
+	display_name = "Advanced Anomaly Shells"
+	description = "New shells designed to utilize anomaly cores, maximizing their potential in innovative ways."
+	prereq_ids = list(TECHWEB_NODE_ANOMALY_RESEARCH)
+	design_ids = list(
+		"cybernetic_heart_anomalock"
+	)
+	research_costs = list(TECHWEB_POINT_TYPE_GENERIC = TECHWEB_TIER_5_POINTS)
 	announce_channels = list(CHANNEL_SCIENCE)
 
 /datum/techweb_node/anomaly_harvesting

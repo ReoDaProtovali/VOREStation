@@ -35,7 +35,6 @@
 	if(!isbelly(hostloc))
 		return list()
 
-	var/list/inside = list()
 	var/obj/belly/inside_belly = hostloc
 	var/mob/living/pred = inside_belly.owner
 
@@ -48,27 +47,10 @@
 	if(inside_desc != "No description.")
 		inside_desc = inside_belly.belly_format_string(inside_desc, owner, use_first_only = TRUE)
 
-	inside = list(
-		"absorbed" = owner.absorbed,
-		"belly_name" = inside_belly.name,
-		"belly_mode" = inside_belly.digest_mode,
-		"desc" = inside_desc,
-		"pred" = pred,
-		"ref" = "\ref[inside_belly]",
-		"liq_lvl" = inside_belly.reagents.total_volume,
-		"liq_reagent_type" = inside_belly.reagent_chosen,
-		"liuq_name" = inside_belly.reagent_name,
-	)
-
 	var/list/inside_contents = list()
 	for(var/atom/movable/O in inside_belly)
 		if(O == owner)
 			continue
-		var/our_type
-		if(isliving(O))
-			our_type = "Living"
-		else if(isitem(O))
-			our_type = "Item"
 
 		var/list/info = list(
 			"name" = "[O]",
@@ -76,7 +58,8 @@
 			"stat" = 0,
 			"ref" = "\ref[O]",
 			"outside" = FALSE,
-			"our_type" = our_type
+			"our_type" = "Item",
+			"damage" = 1
 		)
 		if(show_pictures) //disables icon mode
 			if(inside_belly.contents.len <= max_icon_content)
@@ -87,10 +70,31 @@
 		if(isliving(O))
 			var/mob/living/M = O
 			info["stat"] = M.stat
+			info["our_type"] = "Living"
 			if(M.absorbed)
 				info["absorbed"] = TRUE
+			info["damage"] = M.health / M.maxHealth
+			info["nutrition"] = M.nutrition
+		else if(isitem(O))
+			var/obj/item/our_item = O
+			if(!isnull(our_item.digest_stage))
+				info["damage"] = our_item.digest_stage / our_item.w_class
+
 		UNTYPED_LIST_ADD(inside_contents, info)
-	inside["contents"] = inside_contents
+
+	var/list/inside = list(
+		"absorbed" = owner.absorbed,
+		"belly_name" = inside_belly.get_belly_name(),
+		"belly_mode" = inside_belly.digest_mode,
+		"desc" = inside_desc,
+		"pred" = pred,
+		"ref" = "\ref[inside_belly]",
+		"liq_lvl" = inside_belly.reagents.total_volume,
+		"liq_reagent_type" = inside_belly.reagent_chosen,
+		"liuq_name" = inside_belly.reagent_name,
+		"contents" = inside_contents
+	)
+
 	return inside
 
 /datum/vore_look/proc/get_prey_abilities(mob/owner, obj/belly/inside_belly)
@@ -324,19 +328,6 @@
 		for(var/O in selected)
 
 			// Please don't pass the options as a list... let TGUI handle that
-			var/our_type
-			if(ishuman(O))
-				our_type = "Human"
-
-			else if(isobserver(O) || istype(O,/obj/item/mmi))
-				our_type = "Obeserver"
-
-			else if(isliving(O))
-				var/mob/living/datarget = O
-				if(datarget.client)
-					our_type = "LivingC"
-				else
-					our_type = "Living"
 
 			total_content_count++
 			if(active_vore_tab == CONTENTS_TAB)
@@ -346,7 +337,7 @@
 					"stat" = 0,
 					"ref" = "\ref[O]",
 					"outside" = TRUE,
-					"our_type" = our_type
+					"damage" = 1
 				)
 				if(show_pictures) //disables icon mode
 					if(selected.contents.len <= max_icon_content)
@@ -355,11 +346,34 @@
 					else
 						icon_overflow = TRUE
 
-				if(isliving(O))
-					var/mob/living/M = O
-					info["stat"] = M.stat
-					if(M.absorbed)
+				var/our_type = "Item"
+				if(isobserver(O) || istype(O,/obj/item/mmi))
+					our_type = "Obeserver"
+
+				else if(isliving(O))
+					var/mob/living/datarget = O
+					if(ishuman(O))
+						if(datarget.client)
+							our_type = "HumanC"
+						else
+							our_type = "Human"
+					else
+						if(datarget.client)
+							our_type = "LivingC"
+						else
+							our_type = "Living"
+
+					info["stat"] = datarget.stat
+					if(datarget.absorbed)
 						info["absorbed"] = TRUE
+					info["damage"] = datarget.health / datarget.maxHealth
+					info["nutrition"] = datarget.nutrition
+				else if(isitem(O))
+					var/obj/item/our_item = O
+					if(!isnull(our_item.digest_stage))
+						info["damage"] = our_item.digest_stage / our_item.w_class
+
+				info["our_type"] = our_type
 				LAZYADD(selected_contents, list(info))
 
 		selected_list["content_length"] = total_content_count

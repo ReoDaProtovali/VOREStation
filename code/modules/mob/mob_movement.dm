@@ -1,4 +1,4 @@
-/mob/proc/setMoveCooldown(var/timeout)
+/mob/proc/setMoveCooldown(timeout)
 	next_move = max(world.time + timeout, next_move)
 
 /mob/proc/checkMoveCooldown()
@@ -479,7 +479,7 @@
 ///Called by /client/Move()
 ///For moving in space
 ///Return 1 for movement 0 for none
-/mob/proc/Process_Spacemove(var/check_drift = 0)
+/mob/proc/Process_Spacemove(check_drift = 0)
 
 	if(is_incorporeal())
 		return
@@ -494,6 +494,10 @@
 		return 0
 	inertia_dir = 0
 	return 1
+
+/// Called when this mob slips over, override as needed
+/mob/proc/slip(weaken_amount, obj/slipped_on, lube, slip_dist, stun, force_drop)
+	return
 
 /mob/proc/Check_Dense_Object() //checks for anything to push off in the vicinity. also handles magboots on gravity-less floors tiles
 
